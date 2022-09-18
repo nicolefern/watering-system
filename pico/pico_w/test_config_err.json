@@ -1,0 +1,14 @@
+{
+    "mode": "network",
+    "domains": [
+        {
+            "name": "herbs",
+            "gpio": 0
+        },
+        {
+            "name": "succulents",
+            "gpio": 1,
+            "duration": 5
+        }
+    ]
+}
