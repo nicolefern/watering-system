@@ -1,0 +1,37 @@
+{
+    "mode": "local",
+    "domains": [
+        {
+            "name": "herbs",
+            "gpio": 0,
+            "duration": 10,
+            "schedule": [
+                {
+                    "weekday": "SUN",
+                    "times": ["15:34", "15:35","15:40","15:45"]
+                },
+                {
+                    "weekday": "WED",
+                    "times": ["17:00"]
+                },
+                
+            ]
+        },
+        {
+            "name": "succulents",
+            "gpio": 1,
+            "duration": 5
+            "schedule": [
+                {
+                    "weekday": "SUN",
+                    "times": ["15:34", "15:35","15:42","15:47"]
+                },
+                {
+                    "weekday": "WED",
+                    "times": ["17:00"]
+                },
+                
+            ]
+        }
+    ]
+}
