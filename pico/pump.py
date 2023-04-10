@@ -25,13 +25,13 @@ def file_copy(infilename, outfilename):
     infile.close()
 
 class WateringSystem:
-    def __init__(self, name, configfile=None):
-        self.name = name
-        if configfile:
+    def __init__(self, configfile=None):
+        self.name = ""
+        if configfile is not None and exists(configfile):
             self.read_configfile(configfile)
         else:
+            print("Watering system initialized without a configuration file.")
             self.configfile = None
-            print("Watering system \"{}\" initialized without configuration file.".format(name))
         
 
     def read_configfile(self, configfile):
@@ -50,11 +50,10 @@ class WateringSystem:
            and update the class members if succesful"""
         try:
             domains = dict()
-            # Mode is either network or local
-            mode = config_data["mode"]
-            if not (mode == "network" or mode == "local"):
-                print("Error: Invalid mode (please choose \"local\" or \"network\")")
-                return None
+            name = config_data["name"]
+            #if not (mode == "network" or mode == "local"):
+            #    print("Error: Invalid mode (please choose \"local\" or \"network\")")
+            #    return None
             # Get domain information
             for d in config_data["domains"]:
                 domains[d["name"]] = Domain(d["name"], d["gpio"], d["duration"])
@@ -67,7 +66,7 @@ class WateringSystem:
                 
             # Update the class members
             self.domains = domains
-            self.mode = mode
+            self.name = name
             return config_data
         
         except:
@@ -117,7 +116,7 @@ class WateringSystem:
         if self.configfile:
             json_str = json.dumps(self.config_data)
             print(json_str)
-            return json_str
+            return "Configuration file: {}\n".format(self.configfile) + json_str
         else:
             return "Watering sytem is not configured yet.  Please run update_config.\n"
         
@@ -207,62 +206,103 @@ class Domain:
 def test_pump():
     """Test functionality of WateringSytem and Domain classes"""
     
-    # Create a copy of test_config_orig.json in test_config.json
-    file_copy("test_config_orig.json", "test_config.json")
-    
     # If config.json exists, make a backup then restore at the end of the test
     if exists("config.json"):
         file_copy("config.json","config_orig.json")
-    
-    # Try handling an incorrect config file first then a correct one
-    ws = WateringSystem("test error", "test_config_err.json")
-    ws = WateringSystem("test", "test_config.json")
-    
-    # Try watering domains that exist and don't exist
-    ws.water_domain("herbs")
-    ws.water_domain("succulents")
-    ws.water_domain("poo")
+        
+    # Test creating a watering system with no config file specified
+    ws1 = WateringSystem()
+    ws1.update_config("""{"name": "Testing 123", "domains": [{"gpio": 0, "name": "herbs", "duration": 5}, {"gpio": 1, "name": "succulents", "duration": 2}]}""")
     
     # Test printing functions
-    info_str = ws.print_info()
+    info_str = ws1.print_info()
     print(info_str)
     
-    config_str = ws.print_config()
+    config_str = ws1.print_config()
     print(config_str)
     
-    # Test updating with incorrect configuration then correct one
-    status = ws.update_config("""{"mode": "wrong", "domains": [{"gpio": 0, "name": "herbs", "duration": 10}, {"gpio": 1, "name": "succulents", "duration": 5}]}""")
-    print(status)
+    # Try watering domains that exist and don't exist
+    ws1.water_domain("herbs")
+    ws1.water_domain("succulents")
+    ws1.water_domain("bonsai")
     
-    status = ws.update_config("""{"mode": "network", "domains": [{"gpio": 0, "name": "herbs", "duration": 5}, {"gpio": 1, "name": "succulents", "duration": 2}, {"gpio": 2, "name": "bonsai", "duration": 8}]}""")
+    # Try handling an incorrect config file first then a correct one
+    cf = open("test_config_err.json", "w")
+    cf.write("""{"domains": [{"gpio": 0}, {"gpio": 1, "name": "succulents", "duration": 5}]}""")
+    cf.close()
     
-    info_str = ws.print_info()
+    ws2 = WateringSystem("test_config_err.json")
+    ws2 = WateringSystem("config.json")
     
-    status = ws.water_domain("bonsai")
-    print(status)
-    ws.water_domain("herbs")
-    ws.water_domain("succulents")
-    status = ws.water_domain("poo")
-    print(status)
- 
-    # Get rid of the modified test_config.json file
-    os.remove("test_config.json")
+    # Test updating with incorrect configuration (missing name) then correct one
+    status = ws2.update_config("""{"domains": [{"gpio": 0, "name": "herbs", "duration": 10}, {"gpio": 1, "name": "succulents", "duration": 5}]}""")
+    status = ws2.update_config("""{"name": "Testing 123", "domains": [{"gpio": 0, "name": "herbs", "duration": 5}, {"gpio": 1, "name": "succulents", "duration": 2}, {"gpio": 2, "name": "bonsai", "duration": 8}]}""")
     
-    # Test creating a watering system with no config file specified
-    ws1 = WateringSystem("test no config")
-    ws1.update_config("""{"mode": "network", "domains": [{"gpio": 0, "name": "herbs", "duration": 5}, {"gpio": 1, "name": "succulents", "duration": 2}, {"gpio": 2, "name": "bonsai", "duration": 8}]}""")
-    
+    info_str = ws2.print_info()
+    status = ws2.water_domain("bonsai")
+        
     # Restore original config.json file and delete config_orig.json
     if exists("config_orig.json"):
         file_copy("config_orig.json","config.json")
         os.remove("config_orig.json")
         
+    # Delete test_config_err.json
+    if exists("test_config_err.json"):
+        os.remove("test_config_err.json")
+        
 def test_pump_schd():
-    ws = WateringSystem("test schd", "test_config_schedule.json")
+    cf = open("test_config_schedule.json", "w")
+    cf.write("""
+{
+    "name": "Test schedule",
+    "domains": [
+        {
+            "name": "herbs",
+            "gpio": 0,
+            "duration": 10,
+            "schedule": [
+                {
+                    "weekday": "SUN",
+                    "times": ["15:34", "15:35","15:40","15:45"]
+                },
+                {
+                    "weekday": "WED",
+                    "times": ["17:00"]
+                },
+                
+            ]
+        },
+        {
+            "name": "succulents",
+            "gpio": 1,
+            "duration": 5
+            "schedule": [
+                {
+                    "weekday": "SUN",
+                    "times": ["15:34", "15:35","15:42","15:47"]
+                },
+                {
+                    "weekday": "WED",
+                    "times": ["17:00"]
+                },
+                
+            ]
+        }
+    ]
+}
+    """)
+    cf.close()
+    
+    ws = WateringSystem("test_config_schedule.json")
     print(ws.print_info())
     ws.water_domain("herbs")
     print(ws.print_info())
+    config_str = ws.print_config()
     
+    # Delete test_config_err.json
+    if exists("test_config_schedule.json"):
+        os.remove("test_config_schedule.json")
+        
 if __name__ == "__main__":
     test_pump()
-    #test_pump_schd()
+    test_pump_schd()

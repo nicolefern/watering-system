@@ -7,31 +7,32 @@ from machine import UART, Pin, RTC
 
 from pump import *
 
-ws_name = "Inside Plants ya"
+#ws_name = "Inside Plants ya"
 ver = "2.0"
 PORT = 31415
 
 # Set up watering system
-ws = WateringSystem(ws_name, "config.json")
+ws = WateringSystem("config.json")
 rtc = machine.RTC()
-    
-def old_main():
+        
+def set_time_from_file():
     # Set localtime based on set_localtime.txt file
-    #tf = open("localtime.txt", "r")
-    #time_string = tf.read()
-    #time_tuple = [ int(s) for s in time_string.split(",") ]
-    #rtc = machine.RTC()
-    #rtc.datetime(time_tuple)
-
-    uart1 = UART(1, baudrate=9600, tx=Pin(4), rx=Pin(5))
-    uart1.write('hello')  # write 5 bytes
-
-    
-    while True:
-        data = uart1.readline()  
-        print(time.localtime())
-        print(data)
-        time.sleep(30)
+    if exists("localtime.txt"):
+        tf = open("localtime.txt", "r")
+        time_string = tf.read()
+        time_tuple = [ int(s) for s in time_string.split(",") ]
+        rtc.datetime(time_tuple)
+        print("Set localtime from file: " + time_str())
+        tf.close()
+        
+async def save_time_to_file():
+    while(True):
+        # Save current localtime to file every 5 minutes or so
+        tf = open("localtime.txt", "w")
+        tf.write(", ".join([str(i) for i in rtc.datetime()]))
+        tf.close()
+        print("Saved localtime to file: " + time_str())
+        await asyncio.sleep(300)
         
 def time_str():
     '''
@@ -46,7 +47,7 @@ def print_banner(writer):
     writer.write(banner)
     
     intro_str =  "\n\nWelcome to version {}!\n".format(ver)
-    intro_str += "Watering System Name: {}\n".format(ws_name)
+    intro_str += "Watering System Name: {}\n".format(ws.name)
     intro_str += "Current Time: " + time_str() + "\n\n"
     intro_str += "Enter a command (type \"help\" for list of valid commands):\n"
     writer.write(intro_str)
@@ -173,6 +174,9 @@ async def serve_client(reader, writer):
 
 async def main():
     
+    #Set the localtime from file
+    set_time_from_file()
+    
     if hasattr(network, "WLAN"):
         print("I'm a pico w!")
         wlan = network.WLAN(network.STA_IF)
@@ -187,8 +191,11 @@ async def main():
     
     print('Setting up uart...')
     uart1 = UART(1, baudrate=9600, tx=Pin(4), rx=Pin(5))
-
     asyncio.create_task(uart_term(uart1))
+    
+    #Launch the task that saves the current time to a file periodically
+    asyncio.create_task(save_time_to_file())
+    
     while True:
         print(time.localtime())
         await asyncio.sleep(5)
