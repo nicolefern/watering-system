@@ -7,11 +7,10 @@ from machine import UART, Pin, RTC
 
 from pump import *
 
-#ws_name = "Inside Plants ya"
 ver = "2.0"
 PORT = 31415
 
-# Set up watering system
+# Set up watering system and RTC
 ws = WateringSystem("config.json")
 rtc = machine.RTC()
         
