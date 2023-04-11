@@ -1,5 +1,10 @@
-import network
-import socket
+try:
+    import network
+    import socket
+    pico_type = "PICO_W"
+except:
+    pico_type = "PICO_H"
+    
 import time
 import re
 import uasyncio as asyncio
@@ -176,8 +181,7 @@ async def main():
     #Set the localtime from file
     set_time_from_file()
     
-    if hasattr(network, "WLAN"):
-        print("I'm a pico w!")
+    if pico_type == "PICO_W":
         wlan = network.WLAN(network.STA_IF)
         print('Connecting to Network...')
         ret = None
@@ -199,11 +203,12 @@ async def main():
         print(time.localtime())
         await asyncio.sleep(5)
    
-        if hasattr(network, "WLAN") and (wlan.status() != 3):
-            print("Lost wifi connection, reconnecting...")
-            ret = None
-            while ret == None:
-                ret = connect_to_network(60)   
+        if pico_type == "PICO_W":
+            if wlan.status() != 3:
+                print("Lost wifi connection, reconnecting...")
+                ret = None
+                while ret == None:
+                    ret = connect_to_network(60)   
         
 try:
     asyncio.run(main())
