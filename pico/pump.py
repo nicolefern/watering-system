@@ -199,7 +199,24 @@ class Domain:
         # Record the time of watering
         (year, month, mday, h, m, s, wday, yrday) = time.localtime()
         self.last_watered = (year, month, mday, h, m, wday)
+        
         ret_str = "Watered domain \"{}\" on {} {:02}-{:02}-{:04} @ {:02}:{:02}\n".format(self.name, number2weekday[wday], month, mday, year, h, m)
+        
+        if exists("history.txt"):
+            wf = open("history.txt", "r")
+            log = wf.readlines()
+            print(log)
+            wf.close()
+            if len(log) > 10:
+                wf = open("history.txt", "w")
+                for l in log[5:]:
+                    wf.write(l) 
+                wf.close()
+        
+        wf = open("history.txt", "a")
+        wf.write(ret_str)
+        wf.close()
+        
         return ret_str
 
     
