@@ -36,7 +36,7 @@ async def save_time_to_file():
         tf.write(", ".join([str(i) for i in rtc.datetime()]))
         tf.close()
         print("Saved localtime to file: " + time_str())
-        await asyncio.sleep(300)
+        await asyncio.sleep(120)
         
 def time_str():
     '''
@@ -60,14 +60,16 @@ def print_banner(writer):
     
 def process_command(command, writer):
     print(command)
-    m_water = re.match(r"water (\w+)(\s([0-9.]+))*", command)
+    m_water = re.match(r"water ([a-zA-Z0-9_ ]+)(-d ([0-9.]+))*", command)
     m_update_config = re.match(r"update_config (.*)", command)
     m_update_time = re.match(r"update_time ([0-9]+)/([0-9]+)/([0-9]+) ([0-9]+):([0-9]+)", command)
     
     if m_water:
-        domain_name = m_water.group(1)
+        domain_name = m_water.group(1).strip()
+        print("Domain name: " + domain_name)
         if m_water.group(3):
             duration = float(m_water.group(3))
+            print("Duration: " + str(duration))
             if (duration <= 0) or (duration > 60):
                 writer.write("Error: watering duration must be between 0 and 60 seconds\n")
             else:
@@ -96,7 +98,7 @@ def process_command(command, writer):
         writer.write("Time updated to: " + time_str() + "\n\n")
     elif command == "help":
         help_str = "The following commands are valid: \n"
-        help_str += "  water <domain> [duration]    : water a domain\n"
+        help_str += "  water <domain> [-d duration] : water a domain\n"
         help_str += "  info                         : print info about watering system configuration\n"
         help_str += "  print_config                 : print json configuration file\n"
         help_str += "  update_config <json string>  : update json configuration file\n"
@@ -193,14 +195,16 @@ async def main():
 
     
     print('Setting up uart...')
-    uart1 = UART(1, baudrate=9600, tx=Pin(4), rx=Pin(5))
+    uart1 = UART(0, baudrate=9600, tx=Pin(16), rx=Pin(17))
     asyncio.create_task(uart_term(uart1))
     
     #Launch the task that saves the current time to a file periodically
     asyncio.create_task(save_time_to_file())
     
     while True:
-        print(time.localtime())
+        t = time.localtime()
+        print(t)
+        ws.check_schedule(t)
         await asyncio.sleep(5)
    
         if pico_type == "PICO_W":

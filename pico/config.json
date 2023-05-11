@@ -1,1 +1,25 @@
-{"mode": "network", "domains": [{"gpio": 0, "name": "herbs", "duration": 20}, {"gpio": 1, "name": "succulents", "duration": 15}]}
+{
+    "name": "Wilseyville Living Room",
+    "domains": [
+        {
+            "name": "frank",
+            "gpio": 0,
+            "duration": 45,
+            "schedule": [
+                {
+                    "weekday": "MON",
+                    "times": ["20:45"]
+                },
+                {
+                    "weekday": "WED",
+                    "times": ["17:00"]
+                },
+                                {
+                    "weekday": "FRI",
+                    "times": ["17:00"]
+                },
+                
+            ]
+        }
+    ]
+}
