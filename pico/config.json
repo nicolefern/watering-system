@@ -1,24 +1,34 @@
 {
-    "name": "Wilseyville Living Room",
+    "name": "Vines",
     "domains": [
         {
-            "name": "frank",
+            "name": "Viney the Elder",
             "gpio": 0,
             "duration": 45,
             "schedule": [
                 {
-                    "weekday": "MON",
-                    "times": ["20:45"]
+                    "weekday": "TUE",
+                    "times": ["17:30"]
                 },
                 {
-                    "weekday": "WED",
-                    "times": ["17:00"]
-                },
-                                {
                     "weekday": "FRI",
-                    "times": ["17:00"]
+                    "times": ["17:30"]
                 },
-                
+            ]
+        },
+        {
+            "name": "Viney the Younger",
+            "gpio": 1,
+            "duration": 45,
+            "schedule": [
+                {
+                    "weekday": "TUE",
+                    "times": ["17:35"]
+                },
+                {
+                    "weekday": "FRI",
+                    "times": ["17:35"]
+                },
             ]
         }
     ]
