@@ -12,7 +12,7 @@ from machine import UART, Pin, RTC
 
 from pump import *
 
-ver = "2.0"
+ver = "3.0"
 PORT = 31415
 
 # Set up watering system and RTC
@@ -60,7 +60,7 @@ def print_banner(writer):
     
 def process_command(command, writer):
     print(command)
-    m_water = re.match(r"water (\w+)(\s([0-9.]+))*", command)
+    m_water = re.match(r"water ([a-zA-Z0-9_-]+)(\s([0-9.]+))*", command)
     m_update_config = re.match(r"update_config (.*)", command)
     m_update_time = re.match(r"update_time ([0-9]+)/([0-9]+)/([0-9]+) ([0-9]+):([0-9]+)", command)
     
@@ -176,6 +176,7 @@ async def serve_client(reader, writer):
     await writer.wait_closed()
     print("Client disconnected")
     
+    
 async def blink_led():
     led = Pin(25, Pin.OUT)
     led_state = 0
@@ -183,45 +184,67 @@ async def blink_led():
         led.value(led_state)
         led_state = ~led_state
         await asyncio.sleep(2)
+        
+async def check_watering_schedule():
+    while(True):
+        t = time.localtime()
+        print(t)
+        ws.check_schedule(t)
+        await asyncio.sleep(5)
+
+async def connect_to_wifi(wlan):
+    while(True):
+        if wlan.status() != 3:
+            print('Re-connecting to network...')
+            ret = None
+            while ret == None:
+                ret = connect_to_network(wlan, 60)
+                await asyncio.sleep(1)
+        await asyncio.sleep(5)
 
 async def main():
     
-    #Set the localtime from file
+    #Set the localtime from file upon startup
     set_time_from_file()
+        
+    #Launch the task that saves the current time to a file periodically
+    asyncio.create_task(save_time_to_file())
     
+    # Launch the task that checks the watering schedule every 5 seconds
+    asyncio.create_task(check_watering_schedule())
+    
+    # Set up UART terminal or socket interface for communication
     if pico_type == "PICO_W":
         wlan = network.WLAN(network.STA_IF)
         print('Connecting to Network...')
         ret = None
         while ret == None:
             ret = connect_to_network(wlan, 60)
+            await asyncio.sleep(1)
+        asyncio.create_task(connect_to_wifi(wlan))
+        #print('Connecting to Network...')
+        #ret = None
+        #while ret == None:
+        #    ret = connect_to_network(wlan, 60)
+        #    await asyncio.sleep(1)
         
         print('Setting up socket...')
-        asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", PORT))
+        #server = await asyncio.start_server(serve_client, "0.0.0.0", PORT)
 
-    
-    print('Setting up uart...')
-    uart1 = UART(1, baudrate=9600, tx=Pin(4), rx=Pin(5))
-    asyncio.create_task(uart_term(uart1))
-    
-    #Launch the task that saves the current time to a file periodically
-    asyncio.create_task(save_time_to_file())
-    
-    #Blink the onboard LED to indicate the device is still alive
-    asyncio.create_task(blink_led())
-    
-    while True:
-        t = time.localtime()
-        print(t)
-        ws.check_schedule(t)
-        await asyncio.sleep(5)
-   
-        if pico_type == "PICO_W":
-            if wlan.status() != 3:
-                print("Lost wifi connection, reconnecting...")
-                ret = None
-                while ret == None:
-                    ret = connect_to_network(60)   
+        loop = asyncio.get_event_loop()
+        loop.create_task(asyncio.start_server(serve_client, "0.0.0.0", PORT))
+        try: 
+            loop.run_forever()
+        except KeyboardInterrupt:
+            print("Closing socket")
+            loop.close()
+            
+    else:
+        print('Setting up uart...')
+        uart1 = UART(1, baudrate=9600, tx=Pin(4), rx=Pin(5))
+        asyncio.create_task(uart_term(uart1))
+        #Blink the onboard LED to indicate the device is still alive
+        asyncio.create_task(blink_led())
         
 try:
     asyncio.run(main())
