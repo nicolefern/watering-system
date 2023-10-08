@@ -222,15 +222,7 @@ async def main():
             ret = connect_to_network(wlan, 60)
             await asyncio.sleep(1)
         asyncio.create_task(connect_to_wifi(wlan))
-        #print('Connecting to Network...')
-        #ret = None
-        #while ret == None:
-        #    ret = connect_to_network(wlan, 60)
-        #    await asyncio.sleep(1)
-        
         print('Setting up socket...')
-        #server = await asyncio.start_server(serve_client, "0.0.0.0", PORT)
-
         loop = asyncio.get_event_loop()
         loop.create_task(asyncio.start_server(serve_client, "0.0.0.0", PORT))
         try: 
@@ -240,11 +232,17 @@ async def main():
             loop.close()
             
     else:
-        print('Setting up uart...')
-        uart1 = UART(1, baudrate=9600, tx=Pin(4), rx=Pin(5))
-        asyncio.create_task(uart_term(uart1))
         #Blink the onboard LED to indicate the device is still alive
         asyncio.create_task(blink_led())
+        print('Setting up uart...')
+        loop = asyncio.get_event_loop()
+        uart1 = UART(1, baudrate=9600, tx=Pin(4), rx=Pin(5))
+        loop.create_task(uart_term(uart1))
+        try: 
+            loop.run_forever()
+        except KeyboardInterrupt:
+            print("Closing UART connection")
+            loop.close()
         
 try:
     asyncio.run(main())
