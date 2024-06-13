@@ -12,7 +12,7 @@ from machine import UART, Pin, RTC
 
 from pump import *
 
-ver = "3.0"
+ver = "4.0"
 PORT = 31415
 
 # Set up watering system and RTC
@@ -61,7 +61,7 @@ def print_banner(writer):
 def process_command(command, writer):
     print(command)
     m_water = re.match(r"water ([a-zA-Z0-9_-]+)(\s([0-9.]+))*", command)
-    m_update_config = re.match(r"update_config (.*)", command)
+    m_update_config = re.match(r"update_config ", command)
     m_update_time = re.match(r"update_time ([0-9]+)/([0-9]+)/([0-9]+) ([0-9]+):([0-9]+)", command)
     
     if m_water:
@@ -81,7 +81,7 @@ def process_command(command, writer):
     elif command == "print_config":
         writer.write(ws.print_config() + "\n")
     elif m_update_config:
-        json_str = m_update_config.group(1)
+        json_str = re.sub("update_config ", "", command).rstrip()
         status = ws.update_config(json_str)
         writer.write(status + "\n")
     elif command == "print_time":
